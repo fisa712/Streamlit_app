@@ -36,7 +36,7 @@ qa_chain = RetrievalQA.from_chain_type(
 )
 
 # Streamlit interface
-st.title("PDF's Search")
+st.title("Medical ChatBot 🤖")
 
 # Initialize chat history
 if "messages" not in st.session_state:
