@@ -25,7 +25,7 @@ vector_store = Qdrant(
 llm = ChatOpenAI(
     temperature=0.2,
     model="gpt-4",
-    openai_api_key=os.environ["OPENAI_API_KEY "]
+    openai_api_key=os.environ["OPENAI_API_KEY"]
 )
 
 qa_chain = RetrievalQA.from_chain_type(
