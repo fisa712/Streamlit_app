@@ -14,7 +14,7 @@ qdrant_client = QdrantClient(
     api_key="EalPrnSaJH-LSTNfAPTMTwXdPuLahsu_JlqKfKUM_-aVrDk8Ao8JEA",
 )
 os.environ["QDRANT_COLLECTION_NAME"] = "website_conversations_v1"  # unique
-embeddings = OpenAIEmbeddings(openai_api_key="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")
+embeddings = OpenAIEmbeddings(openai_api_key=os.environ["OPENAI_API_KEY "])
 vector_store = Qdrant(
     client=qdrant_client,
     collection_name=os.getenv("QDRANT_COLLECTION_NAME"),
@@ -25,7 +25,7 @@ vector_store = Qdrant(
 llm = ChatOpenAI(
     temperature=0.2,
     model="gpt-4",
-    openai_api_key="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"
+    openai_api_key=os.environ["OPENAI_API_KEY "]
 )
 
 qa_chain = RetrievalQA.from_chain_type(
