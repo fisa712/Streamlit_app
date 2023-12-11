@@ -10,11 +10,11 @@ from qdrant_client import QdrantClient
 
 # Initialize Qdrant client and create collections
 qdrant_client = QdrantClient(
-    url="https://02748712-9e97-4644-86bc-47d79248dffb.us-east4-0.gcp.cloud.qdrant.io:6333",
-    api_key="EalPrnSaJH-LSTNfAPTMTwXdPuLahsu_JlqKfKUM_-aVrDk8Ao8JEA",
+    url=os.environ['QDRANT_URL'],#,"https://02748712-9e9 7-4644-86bc-47d79248 dffb.us-east4-0.gcp.cloud.qdrant.io:6333",
+    api_key=os.environ['QDRANT_API_KEY']#"EalPrnSaJH-LS TNfAPTMTwXdP  uLahsu  _JlqKfKUM_-aVrDk8Ao8JEA",
 )
 os.environ["QDRANT_COLLECTION_NAME"] = "website_conversations_v1"  # unique
-embeddings = OpenAIEmbeddings(openai_api_key=os.environ["OPENAI_API_KEY "])
+embeddings = OpenAIEmbeddings(openai_api_key=os.environ["OPENAI_API_KEY"])
 vector_store = Qdrant(
     client=qdrant_client,
     collection_name=os.getenv("QDRANT_COLLECTION_NAME"),
