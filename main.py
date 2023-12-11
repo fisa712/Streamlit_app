@@ -30,13 +30,13 @@ vector_store = Qdrant(
 # Initialize language model and conversational retrieval chain
 llm = ChatOpenAI(
     temperature=0.2,
-    model="gpt-4",
+    model="gpt-4-1106-preview",
     openai_api_key="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"
 )
 
 compressor = CohereRerank()
 compression_retriever = ContextualCompressionRetriever(
-    base_compressor=compressor, base_retriever=vector_store.as_retriever(search_type="similarity", search_kwargs={'k': 3})
+    base_compressor=compressor, base_retriever=vector_store.as_retriever(search_type="similarity", search_kwargs={'k': 5})
 )
 
 qa_chain = RetrievalQA.from_chain_type(
