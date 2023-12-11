@@ -7,14 +7,20 @@ from langchain.chains import ConversationalRetrievalChain , RetrievalQA
 from langchain.vectorstores import Qdrant
 from langchain.embeddings.openai import OpenAIEmbeddings
 from qdrant_client import QdrantClient
+from getpass import getpass
+from langchain.retrievers import ContextualCompressionRetriever
+from langchain.retrievers.document_compressors import CohereRerank
+import cohere
+
+os.environ["COHERE_API_KEY"] = "zbIa9oYfhPZb1lWnvwxNpk9bN1cP1GLhdughs1zd"
 
 # Initialize Qdrant client and create collections
 qdrant_client = QdrantClient(
-    url=os.environ['QDRANT_URL'],#,"https://02748712-9e9 7-4644-86bc-47d79248 dffb.us-east4-0.gcp.cloud.qdrant.io:6333",
-    api_key=os.environ['QDRANT_API_KEY']#"EalPrnSaJH-LS TNfAPTMTwXdP  uLahsu  _JlqKfKUM_-aVrDk8Ao8JEA",
+    url="https://02748712-9e97-4644-86bc-47d79248dffb.us-east4-0.gcp.cloud.qdrant.io:6333",
+    api_key="EalPrnSaJH-LSTNfAPTMTwXdPuLahsu_JlqKfKUM_-aVrDk8Ao8JEA",
 )
 os.environ["QDRANT_COLLECTION_NAME"] = "website_conversations_v1"  # unique
-embeddings = OpenAIEmbeddings(openai_api_key=os.environ["OPENAI_API_KEY"])
+embeddings = OpenAIEmbeddings(openai_api_key="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")
 vector_store = Qdrant(
     client=qdrant_client,
     collection_name=os.getenv("QDRANT_COLLECTION_NAME"),
@@ -25,18 +31,23 @@ vector_store = Qdrant(
 llm = ChatOpenAI(
     temperature=0.2,
     model="gpt-4",
-    openai_api_key=os.environ["OPENAI_API_KEY"]
+    openai_api_key="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"
+)
+
+compressor = CohereRerank()
+compression_retriever = ContextualCompressionRetriever(
+    base_compressor=compressor, base_retriever=vector_store.as_retriever(search_type="similarity", search_kwargs={'k': 3})
 )
 
 qa_chain = RetrievalQA.from_chain_type(
     chain_type='stuff' ,
     llm=llm,
-    retriever=vector_store.as_retriever(search_type="similarity", search_kwargs={'k': 3}),
+    retriever=compression_retriever,
     return_source_documents=True
 )
 
 # Streamlit interface
-st.title("Medical ChatBot 🤖")
+st.title("Medical Bot 🤖")
 
 # Initialize chat history
 if "messages" not in st.session_state:
@@ -54,13 +65,12 @@ if user_input := st.text_input("Ask me a question:"):
         # Extract metadata and generate links
         metadata = [doc.metadata['source'] for doc in result['source_documents']]
         paths = list(set(metadata))
-        sources = [path.split("\\")[5] for path in paths]
-        # st.write(sources)
-        links = [f'https://www.ncbi.nlm.nih.gov/books/{each_src[:-4]}/' for each_src in sources]
-
+        sources = paths[0].split('\\')[5]
+       
+        links = f'https://www.ncbi.nlm.nih.gov/books/{sources[:-4]}/'
         # Display assistant response in chat message container
         with st.chat_message("assistant"):
-            assistant_response = f"\n{result['result']}\n\nSource: {', '.join(links)}"
+            assistant_response = f"\n{result['result']}\n\nSource: {links}"
             st.markdown(assistant_response)
             # Add assistant response to chat history
-            st.session_state.messages.append({"role": "assistant", "content": assistant_response}) 
+            st.session_state.messages.append({"role": "assistant", "content": assistant_response})
