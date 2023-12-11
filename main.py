@@ -55,6 +55,7 @@ if user_input := st.text_input("Ask me a question:"):
         metadata = [doc.metadata['source'] for doc in result['source_documents']]
         paths = list(set(metadata))
         sources = [os.path.basename(path) for path in paths]
+        st.write(sources)
         links = [f'https://www.ncbi.nlm.nih.gov/books/{each_src[:-4]}/' for each_src in sources]
 
         # Display assistant response in chat message container
