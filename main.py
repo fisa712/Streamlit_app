@@ -9,18 +9,21 @@ from langchain.embeddings.openai import OpenAIEmbeddings
 from qdrant_client import QdrantClient
 from getpass import getpass
 from langchain.retrievers import ContextualCompressionRetriever
-from langchain.retrievers.document_compressors import CohereRerank
+from langchain.retrievers.document_compressors import CohereRerank 
 import cohere
+from langchain.chat_models import ChatOpenAI
+from langchain.schema import HumanMessage, SystemMessage
+import time 
+import asyncio
+import regex as re
 
-os.environ["COHERE_API_KEY"] = "zbIa9oYfhPZb1lWnvwxNpk9bN1cP1GLhdughs1zd"
 
 # Initialize Qdrant client and create collections
 qdrant_client = QdrantClient(
-    url="https://02748712-9e97-4644-86bc-47d79248dffb.us-east4-0.gcp.cloud.qdrant.io:6333",
-    api_key="EalPrnSaJH-LSTNfAPTMTwXdPuLahsu_JlqKfKUM_-aVrDk8Ao8JEA",
-)
+    url=os.environ['QDRANT_URL']#"
+    api_key=os.environ['QDRANT_API_KEY']#
 os.environ["QDRANT_COLLECTION_NAME"] = "website_conversations_v1"  # unique
-embeddings = OpenAIEmbeddings(openai_api_key="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")
+embeddings = OpenAIEmbeddings(openai_api_key=os.environ['OPENAI_API_KEY'])
 vector_store = Qdrant(
     client=qdrant_client,
     collection_name=os.getenv("QDRANT_COLLECTION_NAME"),
@@ -31,7 +34,7 @@ vector_store = Qdrant(
 llm = ChatOpenAI(
     temperature=0.2,
     model="gpt-4-1106-preview",
-    openai_api_key="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"
+    openai_api_key=os.environ['OPENAI_API_KEY']
 )
 
 compressor = CohereRerank()
@@ -39,12 +42,29 @@ compression_retriever = ContextualCompressionRetriever(
     base_compressor=compressor, base_retriever=vector_store.as_retriever(search_type="similarity", search_kwargs={'k': 5})
 )
 
-qa_chain = RetrievalQA.from_chain_type(
-    chain_type='stuff' ,
-    llm=llm,
-    retriever=compression_retriever,
-    return_source_documents=True
-)
+async def get_relevent_docs(query):
+    res =  await compression_retriever.aget_relevant_documents(query=user_input)
+    _ = await asyncio.sleep(1)
+    return res
+
+def get_response(context , query:str):
+    res=llm.predict(f"""
+You are a helpful assistant. Your Job is to read context and answer to user. While writing answer make sure which page content you got a answer you have to write that Source link at the end of that line. 
+For Example:
+This answer get from first page content. Source link: https://****.
+This answer comes from 3rd page content. Source link: https://****.
+
+### Context:
+{context}
+
+### User Message:
+{query}
+
+### Answer:
+""")
+    
+    return res
+
 
 # Streamlit interface
 st.title("Medical Bot 🤖")
@@ -53,24 +73,32 @@ st.title("Medical Bot 🤖")
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-
+context=""
 # Accept user input
 if user_input := st.text_input("Ask me a question:"):
     # Add user message to chat history
     st.session_state.messages.append({"role": "user", "content": user_input})
     with st.spinner(text="processing..."):
-        # Query the conversational retrieval chain
-        result = qa_chain({'query': user_input})
 
-        # Extract metadata and generate links
-        metadata = [doc.metadata['source'] for doc in result['source_documents']]
-        paths = list(set(metadata))
-        sources = paths[0].split('\\')[5]
-       
-        links = f'https://www.ncbi.nlm.nih.gov/books/{sources[:-4]}/'
-        # Display assistant response in chat message container
+        result = asyncio.run(get_relevent_docs(user_input))
+        
+        for data in result:
+            meta_data = data.metadata['source']
+            chunks  = meta_data.split('\\')
+            pdf_name = chunks[5][:-4]
+            base_url= f'https://www.ncbi.nlm.nih.gov/books/{pdf_name}/'
+            page_content = data.page_content
+            context+=f"Source link: {base_url} \n page_content: {page_content}"
+
+        answer = get_response(context , query=user_input)
+        pattern = r'https?:\S+'
+        urls = re.findall(pattern=pattern , string=answer)#search(pattern, answer)
+        
+        
         with st.chat_message("assistant"):
-            assistant_response = f"\n{result['result']}\n\nSource: {links}"
+            assistant_response = answer
+            for idx, url in enumerate(urls, start=1):
+                clickable_url = f"[[{idx}]]({url})"
+                assistant_response = assistant_response.replace(url, clickable_url)
             st.markdown(assistant_response)
-            # Add assistant response to chat history
-            st.session_state.messages.append({"role": "assistant", "content": assistant_response})
+            
