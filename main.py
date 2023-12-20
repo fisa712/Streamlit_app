@@ -20,8 +20,8 @@ import regex as re
 
 # Initialize Qdrant client and create collections
 qdrant_client = QdrantClient(
-    url=os.environ['QDRANT_URL']#"
-    api_key=os.environ['QDRANT_API_KEY']#
+    url=os.environ['QDRANT_URL'],#" , 
+    api_key=os.environ['QDRANT_API_KEY'] ) #
 os.environ["QDRANT_COLLECTION_NAME"] = "website_conversations_v1"  # unique
 embeddings = OpenAIEmbeddings(openai_api_key=os.environ['OPENAI_API_KEY'])
 vector_store = Qdrant(
