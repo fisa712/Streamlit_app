@@ -49,11 +49,11 @@ async def get_relevent_docs(query):
 
 def get_response(context , query:str):
     res=llm.predict(f"""
-You are a helpful assistant. Your Job is to read context and answer to user. While writing answer make sure which page content you got a answer you have to write that Source link at the end of that line. 
-For Example:
-This answer get from first page content. Source link: https://****.
-This answer comes from 3rd page content. Source link: https://****.
-
+You are a helpful assistant. Your Job is to read context and answer to user's query in Medical Terminologies. At the end of your answer provide the comma seprated metadata links. 
+For example:
+                    <Your answer from the context>\n
+                    <place link 1 here  , place  link2 here  ...>
+                    
 ### Context:
 {context}
 
